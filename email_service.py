@@ -29,7 +29,8 @@ client = boto3.client('ses', region_name=AWS_REGION)
 
 # logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("main") # set file name
+# logger = logging.getLogger("main") # set file name
+logger = context.getLogger()
 
 
 def email_handler(event, context):
