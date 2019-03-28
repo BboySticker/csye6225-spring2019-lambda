@@ -12,7 +12,7 @@ dynamodb = boto3.resource('dynamodb', region_name = 'us-east-1', endpoint_url = 
 table = dynamodb.Table("email_token")
 key_name = 'email_address'
 attToken = 'token'
-attTime = 'timestamp'
+attTime = 'ttl'
 TTL = 20 # minutes
 
 # email configuration
@@ -30,7 +30,7 @@ client = boto3.client('ses', region_name=AWS_REGION)
 # logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 # logger = logging.getLogger("main") # set file name
-logger = context.getLogger()
+logger = logging.getLogger(__name__) # TODO: using logger or not?
 
 
 def email_handler(event, context):
@@ -44,7 +44,7 @@ def email_handler(event, context):
         logger.error("Parse SNS message error, do nothing and exit")
         return None
 
-    print("Get email: [ " + email_address + " ] and set sender domain: [ " + domain + " ]")
+    print("Set sender domain: [ " + domain + " ] and get email: [ " + email_address + " ]")
     
     if (email_exists(email_address)):
         if (not(token_expired(email_address))):
@@ -72,15 +72,18 @@ def token_expired(email):
         return False
     else:
         try:
-            dbTime = response['Item']['timestamp']
+            dbTime = response['Item'][attTime] # The time to live timestamp
         except KeyError:
             logger.error("key error in querying timstamp of email [ " + email + "]  in [ token_expired ]")
             exit(1)
             return False
         else:
-            gap = (int(time.time()) - dbTime)/60
-            logger.info("Time since last password reset request: " + str(int(gap)) + " minutes")
-            return gap > 20
+            curr = int(time.time())
+            if (curr >= dbTime):
+                return True
+            gap =  (dbTime - curr)/60
+            logger.info("Time since last password reset request: " + str(TTL - int(gap)) + " minutes")
+            return False
     
 def email_exists(email):
     '''true if email record still in db'''
@@ -112,7 +115,7 @@ def save_item(email, token):
                 Item={
                     key_name: email,
                     attToken: token,
-                    attTime: int(time.time())
+                    attTime: int(time.time()) + TTL * 60
                 }
             )
         except ClientError as e:
@@ -120,9 +123,24 @@ def save_item(email, token):
             exit(1)
             return
     else:
-        # item exits in database, token not expired
-        logger.error("Email still in database, token not expired or not deleted")
-        return
+        # item exits in database, token expired
+        try:
+            response = table.update_item(
+                Key={
+                    key_name: email
+                },
+                UpdateExpression="set "+attToken+"=:to, "+attTime+"=:ti",
+                ExpressionAttributeValues={
+                    ':to': token,
+                    ':ti': int(time.time()) + TTL * 60
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+        except:
+            logger.error("Error save item through updating in [ save_item ]")
+        else:
+            # logger.info("Email still in database, token not expired or not deleted")
+            return
 
 
 
