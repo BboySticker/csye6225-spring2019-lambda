@@ -13,7 +13,7 @@ table = dynamodb.Table("email_token")
 key_name = 'email_address'
 attToken = 'token'
 attTime = 'ttl'
-TTL = 20 # minutes
+TTL = 1 # minutes
 
 # email configuration
 AWS_REGION = "us-east-1"
