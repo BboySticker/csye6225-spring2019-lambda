@@ -157,11 +157,11 @@ def send_email(email, token, domain):
                 'Body': {
                     'Html': {
                         'Charset': CHAR_SET,
-                        'Data': BODY_HTML + "<p>" + BODY_TEXT + "<br/><br/>http://" + domain + "/reset?email=" + email + "&token=" + token + "</p></body></html>",
+                        'Data': BODY_HTML + "<p>" + BODY_TEXT + "<br/><br/>https://" + domain + "/reset?email=" + email + "&token=" + token + "</p></body></html>",
                     },
                     'Text': {
                         'Charset': CHAR_SET,
-                        'Data': BODY_TEXT + "\nhttp://" + domain + "/reset?email=" + email + "&token=" + token,
+                        'Data': BODY_TEXT + "\nhttps://" + domain + "/reset?email=" + email + "&token=" + token,
                     },
                 },
                 'Subject': {
